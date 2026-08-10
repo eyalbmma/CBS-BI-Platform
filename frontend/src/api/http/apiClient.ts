@@ -46,8 +46,10 @@ async function sendRequest<TBody>(options: ApiRequestOptions<TBody>): Promise<Re
   const headers = new Headers(options.headers)
 
   headers.set('Accept', 'application/json')
-  headers.set('X-Dev-UserId', DEVELOPMENT_AUTH_HEADERS['X-Dev-UserId'])
-  headers.set('X-Dev-Roles', DEVELOPMENT_AUTH_HEADERS['X-Dev-Roles'])
+  if (appConfig.enableDevAuth) {
+    headers.set('X-Dev-UserId', DEVELOPMENT_AUTH_HEADERS['X-Dev-UserId'])
+    headers.set('X-Dev-Roles', DEVELOPMENT_AUTH_HEADERS['X-Dev-Roles'])
+  }
 
   const requestInit: RequestInit = {
     method: options.method,

@@ -20,6 +20,9 @@
 .env
 .env.*
 !.env.example
+!.env.example
+!.env.development
+!.env.production
 
 service-account.json
 **/service-account.json
