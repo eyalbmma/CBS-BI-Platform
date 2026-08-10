@@ -1,6 +1,8 @@
 using CBS.BI.Api.Exceptions;
 using CBS.BI.Api.Security;
+using CBS.BI.Api.Security.Configuration;
 using CBS.BI.Api.Security.Development;
+using CBS.BI.Api.Security.Demo;
 using CBS.BI.Api.Development;
 using CBS.BI.Application.Analytics.Abstractions;
 using CBS.BI.Application.Analytics.SemanticKnowledge;
@@ -51,24 +53,24 @@ Timeout = TimeSpan.FromSeconds(analyticsTimeoutSeconds),
     TimeoutStatusCode = StatusCodes.Status504GatewayTimeout,
       WriteTimeoutResponse = async context =>
          {
-           // Diagnostic logging
+   // Diagnostic logging
     var loggerFactory = context.RequestServices.GetRequiredService<ILoggerFactory>();
      var logger = loggerFactory.CreateLogger("Analytics.Timeout");
             logger.LogInformation("Analytics timeout response callback entered. ResponseHasStarted={HasStarted}, StatusCode={StatusCode}", 
          context.Response.HasStarted, context.Response.StatusCode);
-                
+ 
     // Set status code and content type
  context.Response.StatusCode = StatusCodes.Status504GatewayTimeout;
   context.Response.ContentType = "application/problem+json";
 
      var problemDetails = new ProblemDetails
-          {
+        {
     Type = "analytics-request-timeout",
       Title = "Analytics request timed out",
     Status = StatusCodes.Status504GatewayTimeout,
   Detail = "The analytics request exceeded the configured execution time limit."
     };
-        
+      
     // Serialize ProblemDetails explicitly using System.Text.Json to avoid WriteAsJsonAsync issues with cancelled tokens
  var json = JsonSerializer.Serialize(problemDetails);
  
@@ -88,13 +90,17 @@ builder.Services.AddCors(options =>
   {
     policy.WithOrigins(allowedOrigins!)
 .AllowAnyMethod()
-         .AllowAnyHeader();
-    });
+    .AllowAnyHeader();
+  });
 });
 
 // Configure GoogleCloud options
 builder.Services.Configure<GoogleCloudOptions>(
     builder.Configuration.GetSection(GoogleCloudOptions.SectionName));
+
+// Configure authentication options
+builder.Services.Configure<AppAuthenticationOptions>(
+    builder.Configuration.GetSection(AppAuthenticationOptions.SectionName));
 
 // Register analytics dependencies
 builder.Services.AddScoped<IAnalyticsQueryExecutor, BigQueryAnalyticsQueryExecutor>();
@@ -132,16 +138,45 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserContext, HttpCurrentUserContext>();
 builder.Services.AddScoped<IAnalyticsAuthorizationService, AnalyticsAuthorizationService>();
 
-// Register Development authentication for local testing only
-if (builder.Environment.IsDevelopment())
+// Configure authentication based on mode
+var appAuthOptions = builder.Configuration.GetSection(AppAuthenticationOptions.SectionName).Get<AppAuthenticationOptions>() 
+?? new AppAuthenticationOptions();
+
+if (appAuthOptions.Mode.Equals("Development", StringComparison.OrdinalIgnoreCase))
 {
- builder.Services
+    // Development mode: Use X-Dev-* headers (existing behavior)
+    builder.Services
         .AddAuthentication(DevelopmentAuthenticationHandler.SchemeName)
         .AddScheme<AuthenticationSchemeOptions, DevelopmentAuthenticationHandler>(
-       DevelopmentAuthenticationHandler.SchemeName, null);
+    DevelopmentAuthenticationHandler.SchemeName, null);
 
     // Register Development/POC semantic context provider
     builder.Services.AddScoped<IAnalyticsSemanticContextProvider, DevelopmentAnalyticsSemanticContextProvider>();
+}
+else if (appAuthOptions.Mode.Equals("Demo", StringComparison.OrdinalIgnoreCase))
+{
+    // Demo mode: Fixed demo identity for Cloud Run POC
+  builder.Services
+        .AddAuthentication(DemoAuthenticationHandler.SchemeName)
+   .AddScheme<AuthenticationSchemeOptions, DemoAuthenticationHandler>(
+            DemoAuthenticationHandler.SchemeName, null);
+
+  // Register Development/POC semantic context provider for demo as well
+    builder.Services.AddScoped<IAnalyticsSemanticContextProvider, DevelopmentAnalyticsSemanticContextProvider>();
+}
+else if (appAuthOptions.Mode.Equals("Production", StringComparison.OrdinalIgnoreCase))
+{
+    // Production mode: No fake authentication configured
+    // Future integration: Configure real Government Identity Provider authentication here
+  throw new InvalidOperationException(
+        "Production authentication mode is not yet configured. " +
+   "Please configure a real authentication mechanism (e.g., Government Identity Provider) in the Production environment.");
+}
+else
+{
+    throw new InvalidOperationException(
+        $"Unknown authentication mode: {appAuthOptions.Mode}. " +
+        "Valid modes are: Development, Demo, Production");
 }
 
 builder.Services.AddControllers();
@@ -158,14 +193,21 @@ app.UseExceptionHandler();
 app.UseRequestTimeouts();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (builder.Environment.IsDevelopment() || appAuthOptions.Mode.Equals("Demo", StringComparison.OrdinalIgnoreCase))
 {
     app.UseSwagger();
     app.UseSwaggerUI();
     
     app.UseAuthentication();
  
-    app.MapDevelopmentAnalyticsEndpoints();
+    if (builder.Environment.IsDevelopment())
+    {
+app.MapDevelopmentAnalyticsEndpoints();
+    }
+}
+else
+{
+    app.UseAuthentication();
 }
 
 app.UseHttpsRedirection();
