@@ -106,12 +106,12 @@ public sealed class BusinessDictionaryAnalyticsSemanticKnowledgeSource : IAnalyt
   // Demographics domain
  new(
   Id: "business_term:population",
-       Term: "ΰελμεριιδ",
+       Term: "ΧΧ•Χ›ΧΧ•Χ΅Χ™Χ™Χ”",
      Synonyms: new[]
               {
           "population",
-              "ϊεωαιν",
-             "ξρτψ ϊεωαιν",
+              "ΧªΧ•Χ©Χ‘Χ™Χ",
+             "ΧΧ΅Χ¤Χ¨ ΧªΧ•Χ©Χ‘Χ™Χ",
          "residents",
             "inhabitants"
            }.AsReadOnly(),
@@ -120,12 +120,12 @@ public sealed class BusinessDictionaryAnalyticsSemanticKnowledgeSource : IAnalyt
 
      new(
  Id: "business_term:city",
-        Term: "ςιψ",
+        Term: "ΧΆΧ™Χ¨",
       Synonyms: new[]
           {
         "city",
-         "ςψιν",
-  "ιιωεα",
+         "ΧΆΧ¨Χ™Χ",
+  "Χ™Χ™Χ©Χ•Χ‘",
    "municipality",
  "town",
     "urban_area",
@@ -137,12 +137,12 @@ public sealed class BusinessDictionaryAnalyticsSemanticKnowledgeSource : IAnalyt
             // Employment domain
          new(
     Id: "business_term:unemployment",
-  Term: "ΰαθμδ",
+  Term: "ΧΧ‘ΧΧΧ”",
          Synonyms: new[]
             {
            "unemployment",
-              "ωιςεψ ΰαθμδ",
-    "ξεαθμιν",
+              "Χ©Χ™ΧΆΧ•Χ¨ ΧΧ‘ΧΧΧ”",
+    "ΧΧ•Χ‘ΧΧΧ™Χ",
         "unemployed",
         "unemployment rate",
    "jobless"
@@ -152,14 +152,14 @@ SourceReference: "cbs-bi-poc.analytics_demo.city_employment_yearly.UnemploymentR
 
   new(
     Id: "business_term:employed",
-  Term: "ξεςρχιν",
+  Term: "ΧΧ•ΧΆΧ΅Χ§Χ™Χ",
    Synonyms: new[]
     {
            "employed",
            "employment",
             "employed persons",
-         "ξεςρχ",
-            "ϊςρεχδ",
+         "ΧΧ•ΧΆΧ΅Χ§",
+            "ΧªΧΆΧ΅Χ•Χ§Χ”",
             "workers"
     }.AsReadOnly(),
       Description: "Employed persons. Count of individuals who are employed.",
@@ -167,14 +167,14 @@ SourceReference: "cbs-bi-poc.analytics_demo.city_employment_yearly.UnemploymentR
 
             new(
   Id: "business_term:salary",
-             Term: "ωλψ",
+             Term: "Χ©Χ›Χ¨",
      Synonyms: new[]
        {
         "salary",
         "wage",
         "average salary",
-            "ωλψ ξξεφς",
-   "ξωλεψϊ",
+            "Χ©Χ›Χ¨ ΧΧΧ•Χ¦ΧΆ",
+   "ΧΧ©Χ›Χ•Χ¨Χª",
          "monthly salary",
       "income"
              }.AsReadOnly(),
@@ -184,13 +184,13 @@ SourceReference: "cbs-bi-poc.analytics_demo.city_employment_yearly.UnemploymentR
  // Housing domain
          new(
      Id: "business_term:housing",
-         Term: "γιεψ",
+         Term: "Χ“Χ™Χ•Χ¨",
       Synonyms: new[]
         {
          "housing",
      "real estate",
-   "ξβεψιν",
-         "πγμο",
+   "ΧΧ’Χ•Χ¨Χ™Χ",
+         "Χ Χ“ΧΧ",
  "housing units",
     "residential"
   }.AsReadOnly(),
@@ -199,14 +199,14 @@ SourceReference: "cbs-bi-poc.analytics_demo.city_employment_yearly.UnemploymentR
 
     new(
    Id: "business_term:apartment_price",
-         Term: "ξηιψ γιψδ",
+         Term: "ΧΧ—Χ™Χ¨ Χ“Χ™Χ¨Χ”",
       Synonyms: new[]
           {
   "apartment price",
         "house price",
             "average apartment price",
-         "ξηιψ γιψδ ξξεφς",
-       "ξηιψι γιψεϊ",
+         "ΧΧ—Χ™Χ¨ Χ“Χ™Χ¨Χ” ΧΧΧ•Χ¦ΧΆ",
+       "ΧΧ—Χ™Χ¨Χ™ Χ“Χ™Χ¨Χ•Χª",
           "property price",
         "real estate price"
     }.AsReadOnly(),
@@ -215,12 +215,12 @@ SourceReference: "cbs-bi-poc.analytics_demo.city_employment_yearly.UnemploymentR
 
             new(
 Id: "business_term:rent",
-       Term: "ωλιψεϊ",
+       Term: "Χ©Χ›Χ™Χ¨Χ•Χª",
  Synonyms: new[]
     {
     "rent",
   "monthly rent",
-            "ωλψ γιψδ",
+            "Χ©Χ›Χ¨ Χ“Χ™Χ¨Χ”",
      "rental",
      "lease",
       "average rent"
@@ -231,12 +231,12 @@ Id: "business_term:rent",
             // Education domain
             new(
          Id: "business_term:students",
-  Term: "ϊμξιγιν",
+  Term: "ΧªΧΧΧ™Χ“Χ™Χ",
  Synonyms: new[]
            {
    "students",
      "student count",
-   "ξρτψ ϊμξιγιν",
+   "ΧΧ΅Χ¤Χ¨ ΧªΧΧΧ™Χ“Χ™Χ",
       "pupils",
           "learners"
      }.AsReadOnly(),
@@ -245,13 +245,13 @@ Id: "business_term:rent",
 
           new(
         Id: "business_term:matriculation",
-        Term: "ζλΰεϊ μαβψεϊ",
+        Term: "Χ–Χ›ΧΧ•Χª ΧΧ‘Χ’Χ¨Χ•Χª",
          Synonyms: new[]
           {
  "matriculation",
           "matriculation eligibility",
-           "αβψεϊ",
-          "ΰηεζ ζλΰεϊ μαβψεϊ",
+           "Χ‘Χ’Χ¨Χ•Χª",
+          "ΧΧ—Χ•Χ– Χ–Χ›ΧΧ•Χª ΧΧ‘Χ’Χ¨Χ•Χª",
          "matriculation rate",
          "eligibility for matriculation"
      }.AsReadOnly(),
@@ -260,12 +260,12 @@ Id: "business_term:rent",
 
         new(
   Id: "business_term:teachers",
-         Term: "ξεψιν",
+         Term: "ΧΧ•Χ¨Χ™Χ",
       Synonyms: new[]
       {
 "teachers",
          "teacher count",
-        "ξρτψ ξεψιν",
+        "ΧΧ΅Χ¤Χ¨ ΧΧ•Χ¨Χ™Χ",
            "educators",
        "teaching staff"
             }.AsReadOnly(),
@@ -275,12 +275,12 @@ Id: "business_term:rent",
             // Time dimension (cross-domain)
       new(
        Id: "business_term:year",
-                Term: "ωπδ",
+                Term: "Χ©Χ Χ”",
   Synonyms: new[]
           {
          "year",
-          "ωπϊ",
-    "μτι ωπδ",
+          "Χ©Χ Χª",
+    "ΧΧ¤Χ™ Χ©Χ Χ”",
            "annual",
 "yearly"
          }.AsReadOnly(),
@@ -290,7 +290,7 @@ Id: "business_term:rent",
             // Business rules
          new(
          Id: "business_rule:city_year_join",
-     Term: "λμμι δφθψτεϊ θαμΰεϊ ςιψ εωπδ",
+     Term: "Χ›ΧΧΧ™ Χ”Χ¦ΧΧ¨Χ¤Χ•Χª ΧΧ‘ΧΧΧ•Χª ΧΆΧ™Χ¨ Χ•Χ©Χ Χ”",
            Synonyms: new[]
       {
               "city year join",
