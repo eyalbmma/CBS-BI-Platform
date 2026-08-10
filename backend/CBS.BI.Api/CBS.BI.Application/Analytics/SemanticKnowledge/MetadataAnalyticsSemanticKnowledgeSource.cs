@@ -1,6 +1,8 @@
 using CBS.BI.Application.Analytics.Abstractions;
 using CBS.BI.Application.Analytics.Models;
 using CBS.BI.Application.Security.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CBS.BI.Application.Analytics.SemanticKnowledge;
 
@@ -28,106 +30,121 @@ namespace CBS.BI.Application.Analytics.SemanticKnowledge;
 public sealed class MetadataAnalyticsSemanticKnowledgeSource : IAnalyticsSemanticKnowledgeSource
 {
     private readonly IAnalyticsMetadataCatalog _metadataCatalog;
+ private readonly ILogger<MetadataAnalyticsSemanticKnowledgeSource> _logger;
 
     /// <summary>
     /// Initializes a new instance of the MetadataAnalyticsSemanticKnowledgeSource.
     /// </summary>
     /// <param name="metadataCatalog">Service providing structured analytics metadata from BigQuery.</param>
-    public MetadataAnalyticsSemanticKnowledgeSource(IAnalyticsMetadataCatalog metadataCatalog)
+    /// <param name="logger">Optional logger for diagnostic information. Uses NullLogger if not provided.</param>
+    public MetadataAnalyticsSemanticKnowledgeSource(
+        IAnalyticsMetadataCatalog metadataCatalog,
+        ILogger<MetadataAnalyticsSemanticKnowledgeSource>? logger = null)
     {
-    _metadataCatalog = metadataCatalog ?? throw new ArgumentNullException(nameof(metadataCatalog));
+        _metadataCatalog = metadataCatalog ?? throw new ArgumentNullException(nameof(metadataCatalog));
+        _logger = logger ?? NullLogger<MetadataAnalyticsSemanticKnowledgeSource>.Instance;
     }
 
-    /// <summary>
+  /// <summary>
     /// Retrieves the complete semantic knowledge corpus by transforming structured metadata.
     /// </summary>
     public async Task<IReadOnlyCollection<AnalyticsSemanticKnowledgeItem>> GetItemsAsync(
         CurrentUser user,
-        CancellationToken cancellationToken)
+     CancellationToken cancellationToken)
     {
-        // Retrieve structured metadata from BigQuery
-      var tables = await _metadataCatalog.GetTablesAsync(user, cancellationToken);
-
-        var items = new List<AnalyticsSemanticKnowledgeItem>();
-
-    // Transform metadata into semantic knowledge items
-    foreach (var table in tables)
+        try
         {
-            // Add table metadata item
-    var tableItem = CreateTableMetadataItem(table);
-      items.Add(tableItem);
+        // Retrieve structured metadata from BigQuery
+            var tables = await _metadataCatalog.GetTablesAsync(user, cancellationToken);
 
-       // Add column metadata items
-            foreach (var column in table.Columns)
-   {
-             var columnItem = CreateColumnMetadataItem(table, column);
-                items.Add(columnItem);
-            }
-        }
+          var items = new List<AnalyticsSemanticKnowledgeItem>();
+
+       // Transform metadata into semantic knowledge items
+ foreach (var table in tables)
+        {
+     // Add table metadata item
+        var tableItem = CreateTableMetadataItem(table);
+    items.Add(tableItem);
+
+    // Add column metadata items
+     foreach (var column in table.Columns)
+         {
+               var columnItem = CreateColumnMetadataItem(table, column);
+ items.Add(columnItem);
+  }
+       }
+
+            _logger.LogInformation("SEMANTIC_DIAGNOSTIC: MetadataAnalyticsSemanticKnowledgeSource returned {ItemCount} items from BigQuery metadata", items.Count);
 
         return items.AsReadOnly();
+   }
+        catch (Exception ex)
+        {
+         _logger.LogError(ex, "SEMANTIC_DIAGNOSTIC: MetadataAnalyticsSemanticKnowledgeSource.GetItemsAsync failed: {ErrorMessage}", ex.Message);
+    throw;
+     }
     }
 
- /// <summary>
+    /// <summary>
     /// Creates a semantic knowledge item from table metadata.
     /// </summary>
-    private static AnalyticsSemanticKnowledgeItem CreateTableMetadataItem(AnalyticsTableMetadata table)
+  private static AnalyticsSemanticKnowledgeItem CreateTableMetadataItem(AnalyticsTableMetadata table)
     {
-      var fullyQualifiedName = $"{table.ProjectId}.{table.DatasetId}.{table.TableId}";
+        var fullyQualifiedName = $"{table.ProjectId}.{table.DatasetId}.{table.TableId}";
         var id = $"table:{fullyQualifiedName}";
 
         var contentLines = new List<string>
         {
-    $"Table: {table.TableId}",
-            $"Project: {table.ProjectId}",
- $"Dataset: {table.DatasetId}",
-         $"Fully qualified table: `{fullyQualifiedName}`"
+        $"Table: {table.TableId}",
+ $"Project: {table.ProjectId}",
+            $"Dataset: {table.DatasetId}",
+            $"Fully qualified table: `{fullyQualifiedName}`"
         };
 
-     if (!string.IsNullOrWhiteSpace(table.Description))
+        if (!string.IsNullOrWhiteSpace(table.Description))
         {
-contentLines.Add($"Description: {table.Description}");
+  contentLines.Add($"Description: {table.Description}");
         }
 
-        var content = string.Join("\n", contentLines);
+     var content = string.Join("\n", contentLines);
 
         return new AnalyticsSemanticKnowledgeItem(
- Id: id,
-    Content: content,
-   SourceType: "TableMetadata",
-            SourceReference: fullyQualifiedName);
+  Id: id,
+            Content: content,
+          SourceType: "TableMetadata",
+       SourceReference: fullyQualifiedName);
     }
 
     /// <summary>
     /// Creates a semantic knowledge item from column metadata.
     /// </summary>
     private static AnalyticsSemanticKnowledgeItem CreateColumnMetadataItem(
-        AnalyticsTableMetadata table,
+     AnalyticsTableMetadata table,
         AnalyticsColumnMetadata column)
     {
-     var fullyQualifiedName = $"{table.ProjectId}.{table.DatasetId}.{table.TableId}.{column.Name}";
+        var fullyQualifiedName = $"{table.ProjectId}.{table.DatasetId}.{table.TableId}.{column.Name}";
         var id = $"column:{fullyQualifiedName}";
 
-     var contentLines = new List<string>
- {
-       $"Column: {column.Name}",
-          $"Data type: {column.DataType}",
-    $"Table: {table.TableId}",
-            $"Dataset: {table.DatasetId}",
-            $"Project: {table.ProjectId}"
+        var contentLines = new List<string>
+        {
+            $"Column: {column.Name}",
+    $"Data type: {column.DataType}",
+      $"Table: {table.TableId}",
+    $"Dataset: {table.DatasetId}",
+      $"Project: {table.ProjectId}"
         };
 
-        if (!string.IsNullOrWhiteSpace(column.Description))
-   {
-   contentLines.Add($"Description: {column.Description}");
-        }
+if (!string.IsNullOrWhiteSpace(column.Description))
+        {
+            contentLines.Add($"Description: {column.Description}");
+     }
 
         var content = string.Join("\n", contentLines);
 
- return new AnalyticsSemanticKnowledgeItem(
-     Id: id,
-            Content: content,
- SourceType: "ColumnMetadata",
-            SourceReference: fullyQualifiedName);
+      return new AnalyticsSemanticKnowledgeItem(
+         Id: id,
+          Content: content,
+            SourceType: "ColumnMetadata",
+   SourceReference: fullyQualifiedName);
     }
 }

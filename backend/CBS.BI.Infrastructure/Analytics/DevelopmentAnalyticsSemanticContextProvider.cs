@@ -75,6 +75,8 @@ public sealed class DevelopmentAnalyticsSemanticContextProvider : IAnalyticsSema
             throw new ArgumentNullException(nameof(user), "CurrentUser must not be null.");
         }
 
+        _logger.LogInformation("SEMANTIC_DIAGNOSTIC: DevelopmentAnalyticsSemanticContextProvider.GetContextAsync processing question");
+
         // Measure semantic retrieval
         var retrievalStopwatch = Stopwatch.StartNew();
 
@@ -88,6 +90,7 @@ public sealed class DevelopmentAnalyticsSemanticContextProvider : IAnalyticsSema
         // If no items retrieved, return empty context
         if (retrievedItems.Count == 0)
         {
+            _logger.LogWarning("SEMANTIC_DIAGNOSTIC: DevelopmentAnalyticsSemanticContextProvider returning empty context because retriever returned zero items");
             return string.Empty;
         }
 
@@ -109,6 +112,10 @@ public sealed class DevelopmentAnalyticsSemanticContextProvider : IAnalyticsSema
             context.AppendLine();
         }
 
-        return context.ToString();
+        var contextString = context.ToString();
+        _logger.LogInformation("SEMANTIC_DIAGNOSTIC: DevelopmentAnalyticsSemanticContextProvider returning context of {ContextLength} characters with {ItemCount} items",
+            contextString.Length, retrievedItems.Count);
+
+        return contextString;
     }
 }

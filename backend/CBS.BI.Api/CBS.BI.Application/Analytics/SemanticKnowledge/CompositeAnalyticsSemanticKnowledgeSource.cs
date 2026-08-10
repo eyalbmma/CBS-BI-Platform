@@ -1,6 +1,8 @@
 using CBS.BI.Application.Analytics.Abstractions;
 using CBS.BI.Application.Analytics.Models;
 using CBS.BI.Application.Security.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CBS.BI.Application.Analytics.SemanticKnowledge;
 
@@ -29,18 +31,22 @@ public sealed class CompositeAnalyticsSemanticKnowledgeSource : IAnalyticsSemant
 {
     private readonly MetadataAnalyticsSemanticKnowledgeSource _metadataSource;
     private readonly BusinessDictionaryAnalyticsSemanticKnowledgeSource _businessDictionarySource;
+ private readonly ILogger<CompositeAnalyticsSemanticKnowledgeSource> _logger;
 
     /// <summary>
     /// Initializes a new instance of the CompositeAnalyticsSemanticKnowledgeSource.
     /// </summary>
     /// <param name="metadataSource">Provider of metadata-based semantic knowledge items.</param>
     /// <param name="businessDictionarySource">Provider of business dictionary semantic knowledge items.</param>
+    /// <param name="logger">Optional logger for diagnostic information. Uses NullLogger if not provided.</param>
     public CompositeAnalyticsSemanticKnowledgeSource(
-     MetadataAnalyticsSemanticKnowledgeSource metadataSource,
-  BusinessDictionaryAnalyticsSemanticKnowledgeSource businessDictionarySource)
+        MetadataAnalyticsSemanticKnowledgeSource metadataSource,
+        BusinessDictionaryAnalyticsSemanticKnowledgeSource businessDictionarySource,
+   ILogger<CompositeAnalyticsSemanticKnowledgeSource>? logger = null)
     {
-        _metadataSource = metadataSource ?? throw new ArgumentNullException(nameof(metadataSource));
+      _metadataSource = metadataSource ?? throw new ArgumentNullException(nameof(metadataSource));
         _businessDictionarySource = businessDictionarySource ?? throw new ArgumentNullException(nameof(businessDictionarySource));
+        _logger = logger ?? NullLogger<CompositeAnalyticsSemanticKnowledgeSource>.Instance;
     }
 
     /// <summary>
@@ -48,7 +54,7 @@ public sealed class CompositeAnalyticsSemanticKnowledgeSource : IAnalyticsSemant
     /// 
     /// Execution:
     /// 1. Call metadataSource.GetItemsAsync(user, cancellationToken)
-    /// 2. Call businessDictionarySource.GetItemsAsync(user, cancellationToken)
+/// 2. Call businessDictionarySource.GetItemsAsync(user, cancellationToken)
     /// 3. Combine results: metadata items first, then business dictionary items
     /// 4. Return as read-only collection
     /// 
@@ -62,22 +68,25 @@ public sealed class CompositeAnalyticsSemanticKnowledgeSource : IAnalyticsSemant
         // Retrieve items from metadata source
      var metadataItems = await _metadataSource.GetItemsAsync(user, cancellationToken);
 
-        // Retrieve items from business dictionary source
+    // Retrieve items from business dictionary source
         var businessDictionaryItems = await _businessDictionarySource.GetItemsAsync(user, cancellationToken);
 
+        _logger.LogInformation("SEMANTIC_DIAGNOSTIC: CompositeAnalyticsSemanticKnowledgeSource combining {MetadataCount} metadata items + {BusinessDictCount} dictionary items = {TotalCount} total items",
+ metadataItems.Count, businessDictionaryItems.Count, metadataItems.Count + businessDictionaryItems.Count);
+
         // Combine results: metadata first, then business dictionary
-        var combinedItems = new List<AnalyticsSemanticKnowledgeItem>(
-       metadataItems.Count + businessDictionaryItems.Count);
+  var combinedItems = new List<AnalyticsSemanticKnowledgeItem>(
+metadataItems.Count + businessDictionaryItems.Count);
 
         foreach (var item in metadataItems)
-   {
-            combinedItems.Add(item);
+        {
+combinedItems.Add(item);
         }
 
         foreach (var item in businessDictionaryItems)
-        {
-         combinedItems.Add(item);
-        }
+    {
+            combinedItems.Add(item);
+      }
 
         return combinedItems.AsReadOnly();
     }

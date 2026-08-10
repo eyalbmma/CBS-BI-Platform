@@ -1,6 +1,8 @@
 using CBS.BI.Application.Analytics.Abstractions;
 using CBS.BI.Application.Analytics.Models;
 using CBS.BI.Application.Security.Models;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CBS.BI.Application.Analytics.SemanticRetrieval;
 
@@ -34,14 +36,19 @@ public sealed class LexicalAnalyticsSemanticRetriever : IAnalyticsSemanticRetrie
     private const int MinimumContainmentTokenLength = 4;
 
     private readonly IAnalyticsSemanticKnowledgeSource _knowledgeSource;
+    private readonly ILogger<LexicalAnalyticsSemanticRetriever> _logger;
 
     /// <summary>
     /// Initializes a new instance of the LexicalAnalyticsSemanticRetriever.
     /// </summary>
-  /// <param name="knowledgeSource">Service providing the complete semantic knowledge corpus.</param>
-    public LexicalAnalyticsSemanticRetriever(IAnalyticsSemanticKnowledgeSource knowledgeSource)
- {
-    _knowledgeSource = knowledgeSource ?? throw new ArgumentNullException(nameof(knowledgeSource));
+    /// <param name="knowledgeSource">Service providing the complete semantic knowledge corpus.</param>
+    /// <param name="logger">Optional logger for diagnostic information. Uses NullLogger if not provided.</param>
+    public LexicalAnalyticsSemanticRetriever(
+        IAnalyticsSemanticKnowledgeSource knowledgeSource,
+        ILogger<LexicalAnalyticsSemanticRetriever>? logger = null)
+    {
+        _knowledgeSource = knowledgeSource ?? throw new ArgumentNullException(nameof(knowledgeSource));
+        _logger = logger ?? NullLogger<LexicalAnalyticsSemanticRetriever>.Instance;
     }
 
     /// <summary>
@@ -49,48 +56,56 @@ public sealed class LexicalAnalyticsSemanticRetriever : IAnalyticsSemanticRetrie
     /// </summary>
     public async Task<IReadOnlyCollection<AnalyticsSemanticKnowledgeItem>> RetrieveAsync(
         string question,
-    CurrentUser user,
-    CancellationToken cancellationToken)
+        CurrentUser user,
+        CancellationToken cancellationToken)
     {
-     cancellationToken.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
 
         // Load the complete corpus from the knowledge source
         var corpus = await _knowledgeSource.GetItemsAsync(user, cancellationToken);
 
         // Normalize and tokenize the question
-     var questionTokens = TokenizeQuestion(question);
+        var questionTokens = TokenizeQuestion(question);
 
-  // If no tokens extracted, return empty collection
-     if (questionTokens.Count == 0)
+        _logger.LogInformation("SEMANTIC_DIAGNOSTIC: LexicalAnalyticsSemanticRetriever tokenized question into {TokenCount} tokens: {Tokens}",
+            questionTokens.Count, string.Join(", ", questionTokens.OrderBy(t => t)));
+
+        // If no tokens extracted, return empty collection
+        if (questionTokens.Count == 0)
         {
-      return Array.Empty<AnalyticsSemanticKnowledgeItem>().AsReadOnly();
-     }
+            _logger.LogWarning("SEMANTIC_DIAGNOSTIC: LexicalAnalyticsSemanticRetriever extracted zero tokens from question");
+            return Array.Empty<AnalyticsSemanticKnowledgeItem>().AsReadOnly();
+        }
 
-  // Score each item based on lexical relevance
-     var scoredItems = new List<(AnalyticsSemanticKnowledgeItem Item, int Score, int CorpusIndex)>();
+        // Score each item based on lexical relevance
+        var scoredItems = new List<(AnalyticsSemanticKnowledgeItem Item, int Score, int CorpusIndex)>();
 
         int corpusIndex = 0;
-    foreach (var item in corpus)
+        foreach (var item in corpus)
         {
-    int score = CalculateRelevanceScore(item, questionTokens);
+            int score = CalculateRelevanceScore(item, questionTokens);
 
- if (score > 0)
-         {
-  scoredItems.Add((item, score, corpusIndex));
-       }
+            if (score > 0)
+            {
+                scoredItems.Add((item, score, corpusIndex));
+            }
 
-  corpusIndex++;
-     }
+            corpusIndex++;
+        }
 
         // Sort by relevance descending, then by original corpus order ascending
-      var rankedItems = scoredItems
-    .OrderByDescending(x => x.Score)
-    .ThenBy(x => x.CorpusIndex)
-      .Take(MaxResults)
-     .Select(x => x.Item)
- .ToList();
+        var rankedItems = scoredItems
+            .OrderByDescending(x => x.Score)
+            .ThenBy(x => x.CorpusIndex)
+            .Take(MaxResults)
+            .Select(x => x.Item)
+            .ToList();
 
-return rankedItems.AsReadOnly();
+        var matchedIds = rankedItems.Select(item => item.Id).ToList();
+        _logger.LogInformation("SEMANTIC_DIAGNOSTIC: LexicalAnalyticsSemanticRetriever matched {MatchCount} items from corpus of {CorpusSize}: {ItemIds}",
+            rankedItems.Count, corpus.Count, string.Join(", ", matchedIds));
+
+        return rankedItems.AsReadOnly();
     }
 
     /// <summary>
@@ -100,38 +115,38 @@ return rankedItems.AsReadOnly();
     /// This is a simple baseline tokenization:
     /// - Lowercases using invariant culture
     /// - Splits on whitespace and common punctuation
- /// - Filters out empty tokens
+    /// - Filters out empty tokens
     /// 
     /// More sophisticated tokenization can be added in future implementations.
     /// </remarks>
     private static ISet<string> TokenizeQuestion(string question)
-  {
-   if (string.IsNullOrWhiteSpace(question))
-      {
-        return new HashSet<string>();
+    {
+        if (string.IsNullOrWhiteSpace(question))
+        {
+            return new HashSet<string>();
         }
 
         // Normalize to lowercase using invariant culture
-   var normalized = question.ToLowerInvariant();
+        var normalized = question.ToLowerInvariant();
 
         // Split on whitespace and common punctuation
-  var delimiters = new[] { ' ', '\t', '\n', '\r', '.', ',', '?', '!', ':', ';', '-', '_', '(', ')' };
-    var tokens = normalized.Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
+        var delimiters = new[] { ' ', '\t', '\n', '\r', '.', ',', '?', '!', ':', ';', '-', '_', '(', ')' };
+        var tokens = normalized.Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
 
         return new HashSet<string>(tokens);
     }
 
     /// <summary>
-  /// Calculates the relevance score for a knowledge item against question tokens.
+    /// Calculates the relevance score for a knowledge item against question tokens.
     /// </summary>
     /// <remarks>
-/// Scoring uses two levels of matching:
+    /// Scoring uses two levels of matching:
     /// 
-  /// 1. Exact Token Match (higher weight):
+    /// 1. Exact Token Match (higher weight):
     ///    Question token exactly equals an item token.
     /// 
     /// 2. Containment Match (lower weight):
-///    One token contains another, and the shorter token meets minimum length.
+    ///    One token contains another, and the shorter token meets minimum length.
     ///    This handles cases like Hebrew morphology (e.g., "אוכלוסייה" containing "האוכלוסייה")
     ///    without language-specific rules.
     /// 
@@ -140,42 +155,42 @@ return rankedItems.AsReadOnly();
     /// 
     /// The algorithm is deterministic and technology-neutral.
     /// </remarks>
-  private static int CalculateRelevanceScore(AnalyticsSemanticKnowledgeItem item, ISet<string> questionTokens)
+    private static int CalculateRelevanceScore(AnalyticsSemanticKnowledgeItem item, ISet<string> questionTokens)
     {
         // Build searchable text from multiple fields
-  var searchableText = BuildSearchableText(item);
+        var searchableText = BuildSearchableText(item);
 
-  // Tokenize the searchable text
+        // Tokenize the searchable text
         var itemTokens = new HashSet<string>(TokenizeQuestion(searchableText));
 
         int exactMatches = 0;
-   int containmentMatches = 0;
+        int containmentMatches = 0;
 
         foreach (var questionToken in questionTokens)
         {
-   // Check for exact match
+            // Check for exact match
             if (itemTokens.Contains(questionToken))
-   {
-             exactMatches++;
-   continue;
+            {
+                exactMatches++;
+                continue;
             }
 
             // Check for containment match (weaker signal)
- foreach (var itemToken in itemTokens)
-       {
-  if (TokensMatch(questionToken, itemToken))
+            foreach (var itemToken in itemTokens)
+            {
+                if (TokensMatch(questionToken, itemToken))
                 {
-    containmentMatches++;
-  break;
-    }
-      }
- }
+                    containmentMatches++;
+                    break;
+                }
+            }
+        }
 
         return exactMatches * 2 + containmentMatches * 1;
     }
 
     /// <summary>
-  /// Determines if two tokens match via containment matching.
+    /// Determines if two tokens match via containment matching.
     /// </summary>
     /// <remarks>
     /// Returns true if:
@@ -185,19 +200,19 @@ return rankedItems.AsReadOnly();
     /// 
     /// This avoids false positives from very short tokens like "a", "in", "to".
     /// </remarks>
-private static bool TokensMatch(string token1, string token2)
+    private static bool TokensMatch(string token1, string token2)
     {
-  if (token1 == token2)
+        if (token1 == token2)
         {
             return false;
         }
 
-     // Determine which is shorter
+        // Determine which is shorter
         string shorter = token1.Length < token2.Length ? token1 : token2;
-     string longer = token1.Length < token2.Length ? token2 : token1;
+        string longer = token1.Length < token2.Length ? token2 : token1;
 
-    // Only apply containment matching if shorter token meets minimum length
-  if (shorter.Length < MinimumContainmentTokenLength)
+        // Only apply containment matching if shorter token meets minimum length
+        if (shorter.Length < MinimumContainmentTokenLength)
         {
             return false;
         }
@@ -206,22 +221,22 @@ private static bool TokensMatch(string token1, string token2)
         return longer.Contains(shorter);
     }
 
-/// <summary>
+    /// <summary>
     /// Builds searchable text from multiple fields of a knowledge item.
-  /// </summary>
+    /// </summary>
     private static string BuildSearchableText(AnalyticsSemanticKnowledgeItem item)
     {
-   var parts = new List<string>
+        var parts = new List<string>
         {
             item.Content,
-         item.SourceType
+            item.SourceType
         };
 
-     if (!string.IsNullOrWhiteSpace(item.SourceReference))
+        if (!string.IsNullOrWhiteSpace(item.SourceReference))
         {
-   parts.Add(item.SourceReference);
-  }
+            parts.Add(item.SourceReference);
+        }
 
-   return string.Join(" ", parts);
- }
+        return string.Join(" ", parts);
+    }
 }
