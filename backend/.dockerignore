@@ -1,0 +1,47 @@
+# Git directories and files
+.git
+.gitignore
+.gitattributes
+
+# Build artifacts
+**/bin
+**/obj
+
+# IDE and editor files
+.vs
+.vscode
+**/*.user
+**/*.suo
+**/*.sln.docstates
+.DS_Store
+.idea
+*.swp
+*.swo
+*~
+
+# Test results
+**/TestResults
+**/*.trx
+**/*.coverage
+
+# NuGet
+**/packages
+.nuget
+
+# Build output
+publish/
+dist/
+
+# Documentation
+docs/
+*.md
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# Environment files
+.env
+.env.local
