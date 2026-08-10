@@ -1,0 +1,14 @@
+{
+  "endpoint": "POST /api/analytics/saved-queries",
+  "request": {
+    "name": "Lowest unemployment",
+    "question": "איזו עיר בעלת שיעור האבטלה הנמוך ביותר?"
+  },
+  "notes": [
+    "CreatedByUserId is never supplied by the client.",
+    "The backend derives ownership from CurrentUser.",
+    "The POC store is in-memory, so data is lost when the backend process restarts.",
+    "GET /api/analytics/saved-queries lists the current user's saved queries.",
+    "DELETE /api/analytics/saved-queries/{id} deletes a saved query owned by the current user."
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "endpoint": "POST /api/analytics/dashboards",
+  "request": {
+    "name": "Population Overview",
+    "isDynamic": false,
+    "widgets": [
+      {
+        "title": "Population by City",
+        "savedQueryId": "<saved-query-id>",
+        "visualizationType": "BarChart",
+        "displayOrder": 1
+      }
+    ]
+  },
+  "notes": [
+    "SavedQueryId must reference a saved query owned by the current user.",
+    "Supported POC visualization types: Table, Number, BarChart.",
+    "The backend currently stores dashboard configuration; widget execution is orchestrated by the frontend using the saved question and the existing analytics endpoint.",
+    "The POC dashboard store is in-memory."
+  ]
+}

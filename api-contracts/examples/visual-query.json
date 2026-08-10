@@ -1,0 +1,36 @@
+{
+  "endpoint": "POST /api/analytics/visual-query",
+  "request": {
+    "domain": "Population",
+    "metric": "Population",
+    "year": 2025,
+    "sortDirection": "Descending",
+    "limit": 5
+  },
+  "response": {
+    "sql": "SELECT City, `Population` FROM `cbs-bi-poc.analytics_demo.city_population` WHERE Year = 2025 ORDER BY `Population` DESC LIMIT 5",
+    "result": {
+      "columns": ["City", "Population"],
+      "rows": [
+        { "City": "Jerusalem", "Population": 1000000 },
+        { "City": "Tel Aviv", "Population": 480000 },
+        { "City": "Haifa", "Population": 295000 },
+        { "City": "Rishon LeZion", "Population": 275000 },
+        { "City": "Petah Tikva", "Population": 265000 }
+      ]
+    }
+  },
+  "latestYearExample": {
+    "year": null,
+    "meaning": "Backend uses MAX(Year) for the selected allowlisted table."
+  },
+  "knownErrorExample": {
+    "status": 422,
+    "body": {
+      "type": "visual-query-execution-error",
+      "title": "Visual query execution failed",
+      "status": 422,
+      "detail": "Unsupported domain or metric: Population/SomethingInvalid"
+    }
+  }
+}

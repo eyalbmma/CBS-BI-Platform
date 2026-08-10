@@ -1,0 +1,59 @@
+# =========================
+# .NET
+# =========================
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+
+# =========================
+# Node / React
+# =========================
+**/node_modules/
+**/dist/
+**/.vite/
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+!.env.example
+
+service-account.json
+**/service-account.json
+credentials.json
+**/credentials.json
+
+*.p12
+*.pem
+*.key
+
+# =========================
+# IDE
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs
+# =========================
+*.log
+logs/
+
+# =========================
+# Test / coverage output
+# =========================
+TestResults/
+coverage/
+
+
+*.tmp
+*.Backup.tmp

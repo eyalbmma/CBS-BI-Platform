@@ -1,0 +1,26 @@
+{
+  "endpoint": "POST /api/Analytics/ask",
+  "request": {
+    "question": "איזו עיר בעלת שיעור האבטלה הנמוך ביותר?"
+  },
+  "response": {
+    "sql": "SELECT City FROM `cbs-bi-poc.analytics_demo.city_employment_yearly` WHERE Year = (SELECT MAX(Year) FROM `cbs-bi-poc.analytics_demo.city_employment_yearly`) ORDER BY UnemploymentRatePct ASC LIMIT 1",
+    "result": {
+      "columns": ["City"],
+      "rows": [
+        {
+          "City": "Tel Aviv"
+        }
+      ]
+    }
+  },
+  "knownErrorExample": {
+    "status": 422,
+    "body": {
+      "type": "analytics-query-generation-failed",
+      "title": "Analytics query generation failed",
+      "status": 422,
+      "detail": "No semantic context is available for the requested analytics question."
+    }
+  }
+}
